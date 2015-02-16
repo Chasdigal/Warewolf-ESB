@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Dev2.Common.Interfaces;
 using Dev2.Common.Interfaces.Studio.ViewModels;
@@ -17,12 +18,14 @@ namespace Warewolf.Studio.ViewModels
         private ICollection<IEnvironmentViewModel> _environments;
         private string _searchText;
         private bool _isRefreshing;
-        private IExplorerItemViewModel _selectedItem;
+        private IExplorerTreeItem _selectedItem;
+        private object[] _selectedDataItems;
 
         public ExplorerViewModelBase()
         {
             
             RefreshCommand = new DelegateCommand(Refresh);
+            ClearSearchTextCommand = new DelegateCommand(() => SearchText="");
             
         }
 
@@ -43,7 +46,7 @@ namespace Warewolf.Studio.ViewModels
 
         public bool ShowConnectControl { get; set; }
 
-        public IExplorerItemViewModel SelectedItem
+        public IExplorerTreeItem SelectedItem
         {
             get { return _selectedItem; }
             set
@@ -51,6 +54,16 @@ namespace Warewolf.Studio.ViewModels
                 _selectedItem = value;
                 OnPropertyChanged(() => SelectedItem);
 
+            }
+        }
+
+        public object[] SelectedDataItems
+        {
+            get { return _selectedDataItems; }
+            set
+            {
+                _selectedDataItems = value;
+                OnPropertyChanged(() => SelectedDataItems);
             }
         }
 
@@ -135,8 +148,14 @@ namespace Warewolf.Studio.ViewModels
             if (Environments != null)
             {
                 var env = Environments.FirstOrDefault(a => a.Server == item.Server);
+        
                 if(env!= null)
                 {
+                    if (env.Children.Contains(item))
+                    {
+                        env.RemoveChild(item);
+                    }
+                    else
                     env.RemoveItem(item);
                 }
                 OnPropertyChanged(() => Environments);
@@ -145,7 +164,8 @@ namespace Warewolf.Studio.ViewModels
 
         public event SelectedExplorerEnvironmentChanged SelectedEnvironmentChanged;
 
-    
+
+        public ICommand ClearSearchTextCommand { get; private set; }
 
         public void SelectItem(Guid id)
         {
@@ -177,16 +197,22 @@ namespace Warewolf.Studio.ViewModels
             }
             var localhostEnvironment = CreateEnvironmentFromServer(shellViewModel.LocalhostServer, shellViewModel);
             Environments = new ObservableCollection<IEnvironmentViewModel> { localhostEnvironment };
-            localhostEnvironment.Connect();
+            LoadEnvironment(localhostEnvironment);
+           
             ConnectControlViewModel = new ConnectControlViewModel(shellViewModel.LocalhostServer, aggregator);
             ShowConnectControl = true;
         }
 
-        
+        private async void LoadEnvironment(IEnvironmentViewModel localhostEnvironment)
+        {
+            await localhostEnvironment.Connect();
+            await localhostEnvironment.Load();
+        }
+
 
         IEnvironmentViewModel CreateEnvironmentFromServer(IServer server,IShellViewModel shellViewModel)
         {
-            return new EnvironmentViewModel(server, shellViewModel, this);
+            return new EnvironmentViewModel(server, shellViewModel);
         }
     }
 
@@ -194,8 +220,13 @@ namespace Warewolf.Studio.ViewModels
     {
         public SingleEnvironmentExplorerViewModel(IEnvironmentViewModel environmentViewModel)
         {
-            Environments = new ObservableCollection<IEnvironmentViewModel> { environmentViewModel };
+            environmentViewModel.SetPropertiesForDialog();
+            Environments = new ObservableCollection<IEnvironmentViewModel>
+            {
+                environmentViewModel
+            };
             ShowConnectControl = false;
+            
         }
     }
 }

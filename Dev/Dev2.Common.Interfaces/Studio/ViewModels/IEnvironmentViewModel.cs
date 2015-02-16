@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace Dev2.Common.Interfaces.Studio.ViewModels
@@ -10,13 +11,13 @@ namespace Dev2.Common.Interfaces.Studio.ViewModels
         string DisplayName { get; set; }
         bool IsConnected { get; }
         bool IsLoaded { get; }
-        void Connect();
+        Task<bool> Connect();
         bool IsConnecting { get; }
-        void Load();
-        void LoadDialog(Guid selectedId);
+        Task<bool> Load();
+        Task<bool> LoadDialog(Guid? selectedId);
         void Filter(string filter);
         ICollection<IExplorerItemViewModel> AsList();
-        void SetItemCheckedState(System.Guid id, bool state);
+        void SetItemCheckedState(Guid id, bool state);
         void RemoveItem(IExplorerItemViewModel vm);
         ICommand RefreshCommand { get; set; }
         bool IsServerIconVisible { get; set; }
@@ -24,5 +25,6 @@ namespace Dev2.Common.Interfaces.Studio.ViewModels
         ICommand ShowServerVersionCommand { get; set; }
 
         void SelectItem(Guid id, Action<IExplorerItemViewModel> foundAction);
+        void SetPropertiesForDialog();
     }
 }

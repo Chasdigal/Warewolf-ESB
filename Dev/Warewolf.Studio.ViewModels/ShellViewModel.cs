@@ -26,7 +26,6 @@ using Microsoft.Practices.Unity;
 using Moq;
 using Warewolf.Studio.Core;
 using Warewolf.Studio.Core.Popup;
-using Warewolf.Studio.Core.View_Interfaces;
 using Warewolf.Studio.Models.Help;
 using Warewolf.Studio.Models.Toolbox;
 using Warewolf.Studio.ViewModels.ToolBox;
@@ -40,7 +39,6 @@ namespace Warewolf.Studio.ViewModels
         readonly IRegionManager _regionManager;
         readonly IEventAggregator _aggregator;
         IExceptionHandler _handler;
-        IPopupController _popupController;
         object _activeItem;
         IServer _activeServer;
         double _menuPanelWidth;
@@ -57,7 +55,7 @@ namespace Warewolf.Studio.ViewModels
             LocalhostServer = unityContainer.Resolve<IServer>(new ParameterOverrides { { "uri", localhostUri } });
             LocalhostServer.ResourceName = "localhost (" + localHostString + ")";
             ActiveServer = LocalhostServer;
-
+        
             _menuPanelWidth = 60;
             _menuExpanded = false;
         }
@@ -65,6 +63,7 @@ namespace Warewolf.Studio.ViewModels
         public void Initialize()
         {
 
+            PopupController = _unityContainer.Resolve<IPopupController>();
             _unityContainer.RegisterInstance<IToolboxViewModel>(new ToolboxViewModel(new ToolboxModel(LocalhostServer, LocalhostServer, new Mock<IPluginProxy>().Object), new ToolboxModel(LocalhostServer, LocalhostServer, new Mock<IPluginProxy>().Object)));
            
             InitializeRegion<IExplorerView,IExplorerViewModel>(RegionNames.Explorer);
@@ -74,11 +73,12 @@ namespace Warewolf.Studio.ViewModels
             InitializeRegion<IHelpView, IHelpWindowViewModel>(RegionNames.Help);
 
             _handler = _unityContainer.Resolve<IExceptionHandler>();
-            _popupController = _unityContainer.Resolve<IPopupController>();
-            _handler.AddHandler(typeof(WarewolfInvalidPermissionsException), () => { _popupController.Show(PopupMessages.GetInvalidPermissionException()); });
+           
+            _handler.AddHandler(typeof(WarewolfInvalidPermissionsException), () => { PopupController.Show(PopupMessages.GetInvalidPermissionException()); });
 
         }
 
+        public IPopupController PopupController { get;  set; }
         public void InitializeRegion<T,TU>(string regionName) where T:IView
         {
             var region = _regionManager.Regions[regionName];
@@ -253,7 +253,7 @@ namespace Warewolf.Studio.ViewModels
 
         void CreateNewServerSource(Guid selectedId)
         {
-            var server = new NewServerViewModel(new ServerSource() { UserName = "", Address = "", AuthenticationType = AuthenticationType.Windows, ID = Guid.NewGuid(), Name = "", Password = "", ResourcePath = "" }, ActiveServer.UpdateRepository, new RequestServiceNameViewModel(new EnvironmentViewModel(LocalhostServer, this, _unityContainer.Resolve<IExplorerViewModel>()), _unityContainer.Resolve<IRequestServiceNameView>(), selectedId), this,
+            var server = new NewServerViewModel(new ServerSource() { UserName = "", Address = "", AuthenticationType = AuthenticationType.Windows, ID = Guid.NewGuid(), Name = "", Password = "", ResourcePath = "" }, ActiveServer.UpdateRepository, new RequestServiceNameViewModel(new EnvironmentViewModel(LocalhostServer, this), _unityContainer.Resolve<IRequestServiceNameView>(), selectedId), this,
                 ActiveServer.ResourceName.Substring(0,ActiveServer.ResourceName.IndexOf("(", System.StringComparison.Ordinal)),selectedId) { ServerSource = new ServerSource() { UserName = "", Address = "", AuthenticationType = AuthenticationType.Windows, ID = Guid.NewGuid(), Name = "", Password = "", ResourcePath = "" } };
             GetRegion("Workspace").Add(server);
 
@@ -329,7 +329,7 @@ namespace Warewolf.Studio.ViewModels
 
         public bool ShowPopup(IPopupMessage msg)
         {
-            var res = _popupController.Show(msg);
+            var res = PopupController.Show(msg);
             return res == MessageBoxResult.OK || res == MessageBoxResult.Yes;
         }
 

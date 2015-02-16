@@ -21,9 +21,9 @@ namespace Dev2.Common.Interfaces.Studio.ViewModels
 	    ICommand RefreshCommand { get; set; }
         bool IsRefreshing { get; set; }
 	    bool ShowConnectControl { get; set; }
-	    IExplorerItemViewModel SelectedItem { get; set; }
-
-
+	    IExplorerTreeItem SelectedItem { get; set; }
+	    object[] SelectedDataItems { get; set; }
+	    ICommand ClearSearchTextCommand { get; }
 	    void SelectItem(Guid id);
 	    IList<IExplorerItemViewModel> FindItems(Func<IExplorerItemViewModel, bool> filterFunc);
 	}

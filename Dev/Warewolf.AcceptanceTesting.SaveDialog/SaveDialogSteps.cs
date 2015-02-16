@@ -8,7 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using TechTalk.SpecFlow;
 using Warewolf.Studio.Views;
 
-namespace Warewolf.AcceptanceTesting.Explorer
+namespace Warewolf.AcceptanceTesting.SaveDialog
 {
     [Binding]
     public class SaveDialogSteps
@@ -16,7 +16,7 @@ namespace Warewolf.AcceptanceTesting.Explorer
         [BeforeFeature("SaveDialog")]
         public static void SetupSaveDialogDependencies()
         {
-            var bootstrapper = new UnityBootstrapperForExplorerTesting();
+            var bootstrapper = new UnityBootstrapperForSaveDialogTesting();
             bootstrapper.Run();
             FeatureContext.Current.Add("container", bootstrapper.Container);
             var view = bootstrapper.Container.Resolve<IRequestServiceNameView>();
@@ -39,9 +39,10 @@ namespace Warewolf.AcceptanceTesting.Explorer
         [BeforeScenario("SaveDialog")]
         public void SetupForSave()
         {
-            var container = FeatureContext.Current.Get<IUnityContainer>("saveView");
+            var container = FeatureContext.Current.Get<IUnityContainer>("container");
             var view = container.Resolve<IRequestServiceNameView>();
             ScenarioContext.Current.Add("saveView", view);
+            ScenarioContext.Current.Add("explorerView",view.GetExplorerView());
 
         }
 
@@ -63,6 +64,18 @@ namespace Warewolf.AcceptanceTesting.Explorer
             saveView.HasServer(serverName);
         }
 
+        [Given(@"I should see ""(.*)"" folders")]
+        [When(@"I should see ""(.*)"" folders")]
+        [Then(@"I should see ""(.*)"" folders")]
+        public void GivenIShouldSeeFolders(int numberOfFoldersVisible)
+        {
+            IRequestServiceNameView saveView;
+            ScenarioContext.Current.TryGetValue("saveView", out saveView);
+            Assert.IsNotNull(saveView);
+            var explorerItemViewModels = saveView.GetFoldersVisible();
+            Assert.AreEqual(numberOfFoldersVisible, explorerItemViewModels.Count);
+        }
+
         [Given(@"I should see ""(.*)"" folders in ""(.*)"" save dialog")]
         public void GivenIShouldSeeFoldersInSaveDialog(int p0, string p1)
         {
@@ -81,12 +94,23 @@ namespace Warewolf.AcceptanceTesting.Explorer
             ScenarioContext.Current.Pending();
         }
 
-        [When(@"I open ""(.*)"" in ""(.*)"" save dialog")]
-        public void WhenIOpenInSaveDialog(string p0, string p1)
+        [Given(@"I open ""(.*)"" in save dialog")]
+        [When(@"I open ""(.*)"" in save dialog")]
+        [Then(@"I open ""(.*)"" in save dialog")]
+        public void WhenIOpenInSaveDialog(string folderName)
         {
-            ScenarioContext.Current.Pending();
+            IRequestServiceNameView saveView;
+            ScenarioContext.Current.TryGetValue("saveView", out saveView);
+            Assert.IsNotNull(saveView);
+            saveView.OpenFolder(folderName);
+
         }
 
+        //[When(@"I create ""(.*)"" in ""(.*)""")]
+        //public void WhenICreateIn(string p0, string p1)
+        //{
+        //    ScenarioContext.Current.Pending();
+        //}
         [When(@"I create ""(.*)"" in ""(.*)""")]
         public void WhenICreateIn(string newFolderName, string rootPath)
         {
@@ -118,40 +142,19 @@ namespace Warewolf.AcceptanceTesting.Explorer
         }
 
         [When(@"I enter name ""(.*)""")]
-        public void WhenIEnterName(string p0)
+        public void WhenIEnterName(string serviceName)
         {
-            ScenarioContext.Current.Pending();
+            IRequestServiceNameView saveView;
+            ScenarioContext.Current.TryGetValue("saveView", out saveView);
+            IUnityContainer container;
+            FeatureContext.Current.TryGetValue("container", out container);
+            Assert.IsNotNull(saveView);
+            var requestServiceNameViewModel = container.Resolve<IRequestServiceNameViewModel>();
+            Assert.IsNotNull(requestServiceNameViewModel);
+            saveView.EnterName(serviceName);
+            Assert.AreEqual(serviceName,requestServiceNameViewModel.Name);
         }
 
-        [When(@"validation message is ""(.*)""")]
-        public void WhenValidationMessageIs(string p0)
-        {
-            ScenarioContext.Current.Pending();
-        }
-
-        [When(@"I rename ""(.*)"" to ""(.*)"" in ""(.*)"" save dialog")]
-        public void WhenIRenameToInSaveDialog(string p0, string p1, string p2)
-        {
-            ScenarioContext.Current.Pending();
-        }
-
-        [When(@"I search for ""(.*)"" in save dialog")]
-        public void WhenISearchForInSaveDialog(string p0)
-        {
-            ScenarioContext.Current.Pending();
-        }
-
-        [When(@"I refresh resources in savedialog")]
-        public void WhenIRefreshResourcesInSavedialog()
-        {
-            ScenarioContext.Current.Pending();
-        }
-
-        [When(@"I press ""(.*)""")]
-        public void WhenIPress(string p0)
-        {
-            ScenarioContext.Current.Pending();
-        }
 
         [When(@"I cancel the save dialog")]
         public void WhenICancelTheSaveDialog()
@@ -174,7 +177,7 @@ namespace Warewolf.AcceptanceTesting.Explorer
         [When(@"I save ""(.*)""")]
         public void WhenISave(string p0)
         {
-            ScenarioContext.Current.Pending();
+            
         }
 
         
@@ -210,15 +213,24 @@ namespace Warewolf.AcceptanceTesting.Explorer
         }
 
         [Then(@"save button is ""(.*)""")]
-        public void ThenSaveButtonIs(string p0)
+        public void ThenSaveButtonIs(string enabledString)
         {
-            ScenarioContext.Current.Pending();
+            var enabled = enabledString == "Enabled";
+            IRequestServiceNameView saveView;
+            ScenarioContext.Current.TryGetValue("saveView", out saveView);
+            Assert.IsNotNull(saveView);
+            var isSaveButtonEnabled = saveView.IsSaveButtonEnabled();
+            Assert.AreEqual(enabled,isSaveButtonEnabled);
         }
 
         [Then(@"validation message is ""(.*)""")]
-        public void ThenValidationMessageIs(string p0)
+        public void ThenValidationMessageIs(string expectedValidationMessage)
         {
-            ScenarioContext.Current.Pending();
+            IRequestServiceNameView saveView;
+            ScenarioContext.Current.TryGetValue("saveView", out saveView);
+            Assert.IsNotNull(saveView);
+            var currentValidationMessage = saveView.GetValidationMessage();
+            Assert.AreEqual(expectedValidationMessage,currentValidationMessage);
         }
 
         [Then(@"validation message is thrown ""(.*)""")]

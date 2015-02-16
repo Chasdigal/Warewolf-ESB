@@ -13,6 +13,7 @@
              xmlns:customControls="clr-namespace:Warewolf.Studio.CustomControls;assembly=Warewolf.Studio.CustomControls"
              xmlns:core="clr-namespace:Warewolf.Studio.Core;assembly=Warewolf.Studio.Core"
              xmlns:system="clr-namespace:System;assembly=mscorlib"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              x:Name="ExplorerViewControl"
              d:DataContext="{d:DesignInstance Type=viewModels:IExplorerViewModel,
                                               IsDesignTimeCreatable=False}"
@@ -35,29 +36,21 @@
             <!-- Add controls as needed -->
         </Grid>
 
-        <Grid x:Name="LayoutRoot">
+        <Grid x:Name="LayoutRoot" Margin="{StaticResource ContainerBorder}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="10" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="5" />
             <RowDefinition Height="29" />
-            <RowDefinition Height="5" />
+            <RowDefinition Height="29" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="10" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="10" />
         </Grid.ColumnDefinitions>
 
-
         <!--  URI LOOKUP  -->
-            <Grid Grid.Row="1" Height="29" Grid.Column="1" Visibility="{Binding ShowConnectControl,Converter={StaticResource BoolToVisibilityConverter}}">
-            <views:ConnectControlView DataContext="{Binding ConnectControlViewModel}" />
-        </Grid>
+        <views:ConnectControlView DataContext="{Binding ConnectControlViewModel}" />
 
         <!--  SERVICE FILTER  -->
-        <Grid Grid.Row="3" Grid.Column="1">
+        <Grid Grid.Row="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="29" />
             </Grid.RowDefinitions>
@@ -66,11 +59,12 @@
                 <ColumnDefinition Width="30" />
             </Grid.ColumnDefinitions>
 
-            <TextBox Grid.Row="0"
+            <customControls:SearchTextBox Grid.Row="0"
                      Grid.Column="0"
-                     x:Name="SearchTextBox"
-                     customControls:TextBoxHelper.Watermark="Search" 
-                     customControls:TextBoxHelper.ShowWatermark="True"
+                     x:Name="SearchTextBox"     
+                                          Style="{StaticResource SearchTextboxStyle}"
+                                          ClearSearchCommand="{Binding ClearSearchTextCommand}"
+                                          LabelText="Filter"
                      Text="{Binding SearchText,
                                     Delay=300,
                                     UpdateSourceTrigger=PropertyChanged}"
@@ -101,17 +95,16 @@
         <!--  EXPLORER TREE  -->
 
         <ig:XamDataTree x:Name="ExplorerTree"
-                        Grid.Row="5"
-                        Grid.Column="1"
+                        Grid.Row="2"
                         ActiveDataItem="{Binding SelectedItem, Mode=TwoWay}"
-                      
+                        IsSelectedMemberPath="IsSelected"
                         DisplayMemberPath="DisplayName"
                         IsDraggable="True"
                         IsDropTarget="True"
+                        SelectedDataItems="{Binding SelectedDataItems}"
                         ItemsSource="{Binding Environments}"
                         NodeDragDrop="ExplorerTree_OnNodeDragDrop"
-                        NodeLineVisibility="Hidden"         
-                                         
+                        NodeLineVisibility="Hidden"                                    
                         >
 
                 <ig:DragDropManager.DragSource>
@@ -342,7 +335,6 @@
                 <ig:NodeLayout Key="Children"
                                DisplayMemberPath="ResourceName"
                                IsExpandedMemberPath="IsExpanded"
-                               IsSelectedMemberPath="IsSelected"
                                TargetTypeName="IExplorerItemViewModel"
                                
                                Visibility="{Binding Path=Data.IsVisible,
@@ -676,37 +668,16 @@
                                                MinWidth="5"
                                                Focusable="True"
                                                Text="{Binding Path=Data.ResourceName}"
-                                               Visibility="{Binding Path=Data.IsNotRenaming,
-                                                                    Converter={StaticResource BoolToVisibilityConverter}}" >
+                                               >
                                                                             <i:Interaction.Triggers>
                                             <i:EventTrigger EventName="MouseLeftButtonDown">
-                                             <interactivity:InvokeCommandAction Command="{Binding Path=Data.Expand}" TriggerParameterPath="ClickCount" />
+                                                <interactivity:InvokeCommandAction Command="{Binding Path=Data.Expand}" TriggerParameterPath="ClickCount" />
                                             </i:EventTrigger>
                                            
                                             </i:Interaction.Triggers>
 
                                     </TextBlock>
-                                    <TextBox x:Name="PropertySearch"
-                                             IsVisibleChanged="UIElement_OnIsVisibleChanged"
-                                       
-                                             Text="{Binding Path=Data.ResourceName,
-                                                            UpdateSourceTrigger=LostFocus}"
-                                             CaretIndex="{x:Static system:Int32.MaxValue}"
-                                             ToolTip="{Binding Path=RenameToolTip}"
-                                             Visibility="{Binding Path=Data.IsRenaming,
-                                                                  Converter={StaticResource BoolToVisibilityConverter}}"
-                                             views:FocusExtension.IsFocused="{Binding Path=Data.IsRenaming}">
-                               
-                                            <i:Interaction.Triggers>
-                                            <i:EventTrigger EventName="LostFocus">
-                                                <i:InvokeCommandAction Command="{Binding Path=Data.LostFocus}" />
-                                            </i:EventTrigger>
-                                                <i:EventTrigger EventName="LostKeyboardFocus">
-                                               <i:InvokeCommandAction Command="{Binding Path=Data.LostFocus}" />
-                                            </i:EventTrigger>
-
-                                            </i:Interaction.Triggers>
-                                    </TextBox>
+                                    
                                 </StackPanel>
                              
                             </DockPanel>
@@ -752,6 +723,6 @@
                 </ig:NodeLayout>
             </ig:XamDataTree.GlobalNodeLayouts>
         </ig:XamDataTree>
-    </Grid>
+        </Grid>
     </Grid>
 </UserControl>

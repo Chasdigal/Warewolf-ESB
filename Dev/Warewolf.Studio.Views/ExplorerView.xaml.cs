@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Data;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Effects;
-using Dev2.Common.Interfaces.Data;
+using Dev2.Common.Interfaces;
 using Dev2.Common.Interfaces.Studio.ViewModels;
 using Infragistics.Controls.Menus;
-using Warewolf.Studio.Core.View_Interfaces;
 
 namespace Warewolf.Studio.Views
 {
@@ -21,79 +15,88 @@ namespace Warewolf.Studio.Views
 	public partial class ExplorerView : IExplorerView
 	{
 	    private readonly ExplorerViewTestClass _explorerViewTestClass;
-	    Grid _blackoutGrid;
 
 	    public ExplorerView()
 	    {
 	        InitializeComponent();
 	        _explorerViewTestClass = new ExplorerViewTestClass(this);
-            ExplorerTree.ActiveNodeChanged+=ExplorerTreeOnActiveNodeChanged;
 	    }
 
-	    private void ExplorerTreeOnActiveNodeChanged(object sender, ActiveNodeChangedEventArgs activeNodeChangedEventArgs)
-	    {
-	        if (activeNodeChangedEventArgs.NewActiveTreeNode==null)
-	        {
-	            activeNodeChangedEventArgs.Cancel = true;
-	        }
-	        if (activeNodeChangedEventArgs.NewActiveTreeNode != null)
-	        {
-	            var explorerItemViewModel = activeNodeChangedEventArgs.NewActiveTreeNode.Data as IExplorerItemViewModel;
-	            if (explorerItemViewModel != null)
-	            {
-	                explorerItemViewModel.ItemSelectedCommand.Execute(null);
-	            }
-	        }
-	    }
+
 
 	    public ExplorerViewTestClass ExplorerViewTestClass
 	    {
 	        get { return _explorerViewTestClass; }
 	    }
 
-
-	    private void ScrollBar_Loaded(object sender, RoutedEventArgs e)
-        {
-	        var scrollBar = sender as ScrollBar;
-	        if (scrollBar != null && scrollBar.Orientation == Orientation.Horizontal)
-            {
-                ExplorerTree.Tag = sender;                
-            }
-        }
-
         public IEnvironmentViewModel OpenEnvironmentNode(string nodeName)
         {
-            return _explorerViewTestClass.OpenEnvironmentNode(nodeName);
+            return ExplorerViewTestClass.OpenEnvironmentNode(nodeName);
         }
 
 	    public List<IExplorerItemViewModel> GetFoldersVisible()
 	    {
-	        return _explorerViewTestClass.GetFoldersVisible();
+	        return ExplorerViewTestClass.GetFoldersVisible();
 	    }
 
 	    public IExplorerItemViewModel OpenFolderNode(string folderName)
 	    {
-	        return _explorerViewTestClass.OpenFolderNode(folderName);
+	        return ExplorerViewTestClass.OpenFolderNode(folderName);
 	    }
 
 	    public int GetVisibleChildrenCount(string folderName)
 	    {
-	        return _explorerViewTestClass.GetVisibleChildrenCount(folderName);
+	        return ExplorerViewTestClass.GetVisibleChildrenCount(folderName);
 	    }
 
 	    public void PerformFolderRename(string originalFolderName, string newFolderName)
 	    {
-	        _explorerViewTestClass.PerformFolderRename(originalFolderName, newFolderName);
+	        ExplorerViewTestClass.PerformFolderRename(originalFolderName, newFolderName);
 	    }
 
 	    public void PerformSearch(string searchTerm)
 	    {
 	        SearchTextBox.Text = searchTerm;
             BindingExpression be = SearchTextBox.GetBindingExpression(TextBox.TextProperty);
-	        if(be != null)
+	        if (be != null)
 	        {
-            be.UpdateSource();
+	            be.UpdateSource();
 	        }
+	    }
+
+	    public void AddNewFolder(string folder, string server)
+	    {
+            ExplorerViewTestClass.PerformFolderAdd(server, folder);
+	    }
+
+	    public void VerifyItemExists(string path)
+	    {
+            ExplorerViewTestClass.VerifyItemExists(path);
+	    }
+
+	    public void DeletePath(string path)
+	    {
+            ExplorerViewTestClass.DeletePath(path);
+	    }
+
+	    public void AddNewFolderFromPath(string path)
+	    {
+            ExplorerViewTestClass.PerformFolderAdd(path);
+	    }
+
+	    public void AddNewResource(string path, string itemType)
+	    {
+            ExplorerViewTestClass.PerformItemAdd(path,itemType);
+	    }
+
+	    public void AddResources(int resourceNumber, string path, string type)
+	    {
+            ExplorerViewTestClass.AddChildren(resourceNumber, path,type);
+	    }
+
+	    public int GetResourcesVisible(string path)
+	    {
+            return ExplorerViewTestClass.GetFoldersResourcesVisible(path);
 	    }
 
 	    public void Blur()
@@ -108,11 +111,6 @@ namespace Warewolf.Studio.Views
                 Overlay.Opacity = 0.75;
           
             }
-	    }
-
-	    public void UnBlur()
-	    {
-            RemoveVisualChild(_blackoutGrid);
 	    }
 
 	    void ExplorerTree_OnNodeDragDrop(object sender, TreeDropEventArgs e)
@@ -146,35 +144,9 @@ namespace Warewolf.Studio.Views
             
 	    }
 
-        void UIElement_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-	    {
-            if (((TextBox)sender).Visibility == Visibility.Visible)
-            {
-                //Keyboard.Focus((IInputElement)sender);
-                //var parent = FindParent<XamDataTreeNodeControl>((TextBox)sender);
-                //if (parent != null && parent.Node != null)
-                //{
-                //    ExplorerTree.ScrollNodeIntoView(parent.Node);
-                //}
-            }
-	    }	    
 
-	    private void FocusManager_OnGotFocus(object sender, RoutedEventArgs e)
-	    {
-	    }
 
-	    void ExplorerTree_OnActiveNodeChanged(object sender, ActiveNodeChangedEventArgs e)
-	    {
-          // ExplorerTree.ScrollNodeIntoView(e.NewActiveTreeNode);
-	    }
-
-	    void ExplorerTree_OnActiveNodeChanging(object sender, ActiveNodeChangingEventArgs e)
-	    {
-	    }
-
-	    void ExplorerTree_OnSelectedNodesCollectionChanged(object sender, NodeSelectionEventArgs e)
-	    {
-	    }
+	 
 
         public static T FindParent<T>(DependencyObject child) where T : DependencyObject
         {
@@ -189,6 +161,6 @@ namespace Warewolf.Studio.Views
             if (parent != null)
                 return parent;
             return FindParent<T>(parentObject);
-        }
+	    }
 	}
 }
