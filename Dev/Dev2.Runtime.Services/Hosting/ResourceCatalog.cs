@@ -208,7 +208,7 @@ namespace Dev2.Runtime.Hosting
         #endregion
 
         #region GetResourceContents
-
+        object workspaceLock = new object();
         /// <summary>
         /// Gets the contents of the resource with the given name.
         /// </summary>
@@ -217,8 +217,25 @@ namespace Dev2.Runtime.Hosting
         /// <returns>The resource's contents or <code>string.Empty</code> if not found.</returns>
         public StringBuilder GetResourceContents(Guid workspaceID, Guid resourceID)
         {
-            var resource = GetResource(workspaceID, resourceID);
-            return GetResourceContents(resource);
+            IResource foundResource = null;
+            List<IResource> resources;
+            
+            lock (workspaceLock)
+            {
+                if (_workspaceResources.TryGetValue(workspaceID, out resources))
+                {
+                    foundResource = resources.FirstOrDefault(resource => resource.ResourceID == resourceID);
+                }
+
+                if (foundResource == null && workspaceID != GlobalConstants.ServerWorkspaceID)
+                {
+                    if (_workspaceResources.TryGetValue(GlobalConstants.ServerWorkspaceID, out resources))
+                    {
+                        foundResource = resources.FirstOrDefault(resource => resource.ResourceID == resourceID);
+                    }
+                }
+            }
+            return GetResourceContents(foundResource);
         }
 
         /// <summary>
@@ -966,25 +983,31 @@ namespace Dev2.Runtime.Hosting
 
         public virtual IResource GetResource(Guid workspaceID, Guid serviceID)
         {
+            IResource foundResource = null;
             try
             {
-                while(true)
+                lock (workspaceLock)
                 {
-                    var resources = GetResources(workspaceID);
-                    var foundResource = resources.FirstOrDefault(resource => resource.ResourceID == serviceID);
-                    if(foundResource == null && workspaceID != GlobalConstants.ServerWorkspaceID)
+                    List<IResource> resources;
+                    if (_workspaceResources.TryGetValue(workspaceID, out resources))
                     {
-                        workspaceID = GlobalConstants.ServerWorkspaceID;
-                        continue;
+                        foundResource = resources.FirstOrDefault(resource => resource.ResourceID == serviceID);
                     }
-                    return foundResource;
+
+                    if (foundResource == null && workspaceID != GlobalConstants.ServerWorkspaceID)
+                    {
+                        if (_workspaceResources.TryGetValue(GlobalConstants.ServerWorkspaceID, out resources))
+                        {
+                            foundResource = resources.FirstOrDefault(resource => resource.ResourceID == serviceID);
+                        }
+                    }
                 }
             }
             catch(Exception e)
             {
                 Dev2Logger.Log.Error("Error getting resource",e);
             }
-            return null;
+            return foundResource;
         }
 
         public virtual T GetResource<T>(Guid workspaceID, Guid serviceID) where T : Resource, new()
@@ -1333,9 +1356,14 @@ namespace Dev2.Runtime.Hosting
                 UpdateIsValid(resourceElement);
             }
 
-            StringBuilder contents = resourceElement.ToStringBuilder();
-            contents.WriteToFile(resource.FilePath, Encoding.UTF8);
+            StringBuilder result = resourceElement.ToStringBuilder();
 
+            var signedXml = HostSecurityProvider.Instance.SignXml(result);
+
+            lock (GetFileLock(resource.FilePath))
+            {
+                signedXml.WriteToFile(resource.FilePath, Encoding.UTF8);
+            }
         }
 
         void SetErrors(XElement resourceElement, IList<ICompileMessageTO> compileMessagesTO)

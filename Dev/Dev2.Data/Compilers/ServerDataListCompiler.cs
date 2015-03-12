@@ -1396,7 +1396,10 @@ namespace Dev2.Server.Datalist
                     {
                         // swap extract from and pushTo around for output shaping
                         extractFromId = childDl.UID;
-                        pushToId = childDl.ParentUID;
+                        if (childDl.ParentUID != Guid.Empty)
+                        {
+                            pushToId = childDl.ParentUID;
+                        }
                     }
 
                     var inputExpressionExtractor = BuildInputExpressionExtractor(typeOf);
@@ -1698,12 +1701,7 @@ namespace Dev2.Server.Datalist
 
             IBinaryDataList result = _dlServer.ReadDatalist(id, out errors);
 
-            if(result == null)
-            {
-                error = "Cache miss for [ " + id + " ]";
-            }
-
-            return result;
+           return result;
         }
 
         /// <summary>
